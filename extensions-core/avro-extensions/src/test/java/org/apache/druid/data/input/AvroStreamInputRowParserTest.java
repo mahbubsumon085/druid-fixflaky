@@ -342,6 +342,8 @@ public class AvroStreamInputRowParserTest
 
   static void assertInputRowCorrect(InputRow inputRow, List<String> expectedDimensions, boolean isFromPigAvro)
   {
+    Collections.sort(expectedDimensions);
+    Collections.sort(inputRow.getDimensions());
     Assert.assertEquals(expectedDimensions, inputRow.getDimensions());
     Assert.assertEquals(1543698L, inputRow.getTimestampFromEpoch());
 
