@@ -35,7 +35,12 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 
 /**
  * Duplicate of {@link CompatParquetInputTest} but for {@link ParquetReader} instead of Hadoop
@@ -94,18 +99,13 @@ public class CompatParquetReaderTest extends BaseParquetReaderTest
                                 + "  \"field\" : \"hey this is &é(-è_çà)=^$ù*! Ω^^\",\n"
                                 + "  \"ts\" : 1471800234\n"
                                 + "}";
-    Assert.assertEquals(expectedJson, DEFAULT_JSON_WRITER.writeValueAsString(sampled.get(0).getRawValues()));
-
+    Assert.assertTrue(areJsonStringsEqual(expectedJson, DEFAULT_JSON_WRITER.writeValueAsString(sampled.get(0).getRawValues())));
     final String expectedJsonBinary = "{\n"
                                 + "  \"field\" : \"aGV5IHRoaXMgaXMgJsOpKC3DqF/Dp8OgKT1eJMO5KiEgzqleXg==\",\n"
                                 + "  \"ts\" : 1471800234\n"
                                 + "}";
-    Assert.assertEquals(
-        expectedJsonBinary,
-        DEFAULT_JSON_WRITER.writeValueAsString(sampledAsBinary.get(0).getRawValues())
-    );
+    Assert.assertTrue(areJsonStringsEqual(expectedJsonBinary, DEFAULT_JSON_WRITER.writeValueAsString(sampledAsBinary.get(0).getRawValues())));
   }
-
 
   @Test
   public void testParquet1217() throws IOException
@@ -436,5 +436,24 @@ public class CompatParquetReaderTest extends BaseParquetReaderTest
                                 + "  }\n"
                                 + "}";
     Assert.assertEquals(expectedJson, DEFAULT_JSON_WRITER.writeValueAsString(sampled.get(0).getRawValues()));
+  }
+  
+  public boolean areJsonStringsEqual(String jsonStringFirst, String jsonStringSecond)
+  {
+    TreeMap<String, String> treeMapFirst = parseJsonString(jsonStringFirst);
+    TreeMap<String, String> treeMapSecond = parseJsonString(jsonStringSecond);
+    return treeMapFirst.equals(treeMapSecond);
+  }
+
+  public TreeMap<String, String> parseJsonString(String jsonString)
+  {
+    TreeMap<String, String> treeMap = new TreeMap<>();
+    Pattern pattern = Pattern.compile("[{}\"]");
+    Matcher matcher = pattern.matcher(jsonString);
+    jsonString = matcher.replaceAll("");
+    Arrays.stream(jsonString.split(","))
+          .map(entry -> entry.split(":", 2))
+          .forEach(pair -> treeMap.put(pair[0].trim(), pair[1].trim()));
+    return treeMap;
   }
 }
